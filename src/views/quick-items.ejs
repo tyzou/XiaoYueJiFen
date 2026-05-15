@@ -1,0 +1,251 @@
+<%- include('partials/header') %>
+
+<%
+  const iconChoices = [
+    { value: 'fluent-emoji-flat:open-book', label: '阅读' },
+    { value: 'fluent-emoji-flat:books', label: '书本' },
+    { value: 'fluent-emoji-flat:memo', label: '作业' },
+    { value: 'fluent-emoji-flat:pencil', label: '书写' },
+    { value: 'fluent-emoji-flat:school', label: '学习' },
+    { value: 'fluent-emoji-flat:graduation-cap', label: '毕业帽' },
+    { value: 'fluent-emoji-flat:abacus', label: '数学' },
+    { value: 'fluent-emoji-flat:artist-palette', label: '画画' },
+    { value: 'fluent-emoji-flat:musical-notes', label: '音乐' },
+    { value: 'fluent-emoji-flat:microphone', label: '唱歌' },
+    { value: 'fluent-emoji-flat:trophy', label: '奖杯' },
+    { value: 'fluent-emoji-flat:sports-medal', label: '奖牌' },
+    { value: 'fluent-emoji-flat:1st-place-medal', label: '第一名' },
+    { value: 'fluent-emoji-flat:check-mark-button', label: '达成' },
+    { value: 'fluent-emoji-flat:glowing-star', label: '星星' },
+    { value: 'fluent-emoji-flat:red-heart', label: '爱心' },
+    { value: 'fluent-emoji-flat:smiling-face-with-smiling-eyes', label: '开心' },
+    { value: 'fluent-emoji-flat:beaming-face-with-smiling-eyes', label: '很棒' },
+    { value: 'fluent-emoji-flat:sun', label: '早起' },
+    { value: 'fluent-emoji-flat:crescent-moon', label: '月亮' },
+    { value: 'fluent-emoji-flat:sleeping-face', label: '睡觉' },
+    { value: 'fluent-emoji-flat:alarm-clock', label: '准时' },
+    { value: 'fluent-emoji-flat:tear-off-calendar', label: '坚持' },
+    { value: 'fluent-emoji-flat:house', label: '家庭' },
+    { value: 'fluent-emoji-flat:broom', label: '家务' },
+    { value: 'fluent-emoji-flat:fork-and-knife', label: '吃饭' },
+    { value: 'fluent-emoji-flat:t-shirt', label: '整理衣服' },
+    { value: 'fluent-emoji-flat:soap', label: '洗漱' },
+    { value: 'fluent-emoji-flat:leafy-green', label: '蔬菜' },
+    { value: 'fluent-emoji-flat:bicycle', label: '骑车' },
+    { value: 'fluent-emoji-flat:person-running', label: '运动' },
+    { value: 'fluent-emoji-flat:soccer-ball', label: '足球' },
+    { value: 'fluent-emoji-flat:basketball', label: '篮球' },
+    { value: 'fluent-emoji-flat:video-game', label: '游戏' },
+    { value: 'fluent-emoji-flat:television', label: '电视' },
+    { value: 'fluent-emoji-flat:mobile-phone', label: '手机' },
+    { value: 'fluent-emoji-flat:laptop', label: '电脑' },
+    { value: 'fluent-emoji-flat:speech-balloon', label: '沟通' },
+    { value: 'fluent-emoji-flat:handshake', label: '帮助' },
+    { value: 'fluent-emoji-flat:thumbs-up', label: '表扬' },
+    { value: 'fluent-emoji-flat:bullseye', label: '目标' },
+    { value: 'fluent-emoji-flat:wrapped-gift', label: '礼物' },
+    { value: 'fluent-emoji-flat:party-popper', label: '庆祝' },
+    { value: 'fluent-emoji-flat:shopping-bags', label: '兑换' },
+    { value: 'fluent-emoji-flat:money-bag', label: '存钱' },
+    { value: 'fluent-emoji-flat:coin', label: '积分' },
+    { value: 'fluent-emoji-flat:green-apple', label: '苹果' },
+    { value: 'fluent-emoji-flat:banana', label: '香蕉' },
+    { value: 'fluent-emoji-flat:carrot', label: '胡萝卜' },
+    { value: 'fluent-emoji-flat:glass-of-milk', label: '牛奶' },
+    { value: 'fluent-emoji-flat:shortcake', label: '蛋糕' },
+    { value: 'fluent-emoji-flat:birthday-cake', label: '生日蛋糕' },
+    { value: 'fluent-emoji-flat:soft-ice-cream', label: '冰淇淋' },
+    { value: 'fluent-emoji-flat:cloud-with-rain', label: '下雨' },
+    { value: 'fluent-emoji-flat:angry-face', label: '生气' },
+    { value: 'fluent-emoji-flat:frowning-face', label: '不开心' },
+    { value: 'fluent-emoji-flat:snail', label: '拖拉' },
+    { value: 'fluent-emoji-flat:wastebasket', label: '乱扔' },
+    { value: 'fluent-emoji-flat:speaker-high-volume', label: '吵闹' },
+    { value: 'fluent-emoji-flat:muted-speaker', label: '安静' },
+    { value: 'fluent-emoji-flat:warning', label: '提醒' },
+    { value: 'fluent-emoji-flat:thumbs-down', label: '扣分' },
+    { value: 'fluent-emoji-flat:cross-mark', label: '错误' }
+  ];
+  const enabledItems = quickItems.filter(function(item) { return item.enabled; });
+  const disabledItems = quickItems.filter(function(item) { return !item.enabled; });
+  const addItems = quickItems.filter(function(item) { return item.points > 0; });
+  const subtractItems = quickItems.filter(function(item) { return item.points < 0; });
+  const nextSortOrder = quickItems.length
+    ? Math.max.apply(null, quickItems.map(function(item) { return Number(item.sort_order) || 0; })) + 10
+    : 10;
+%>
+
+<main class="quick-items-page">
+  <section class="card quick-admin-hero">
+    <div class="quick-admin-copy">
+      <p class="eyebrow">快捷项管理</p>
+      <h1>快捷项</h1>
+      <p class="muted">首页只展示已启用项目；正数加分，负数减分，排序越小越靠前。</p>
+    </div>
+    <div class="quick-admin-metrics" aria-label="快捷项概览">
+      <div>
+        <strong><%= enabledItems.length %></strong>
+        <span>启用</span>
+      </div>
+      <div>
+        <strong><%= addItems.length %></strong>
+        <span>加分</span>
+      </div>
+      <div>
+        <strong><%= subtractItems.length %></strong>
+        <span>减分</span>
+      </div>
+      <div>
+        <strong><%= disabledItems.length %></strong>
+        <span>停用</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card quick-create-panel">
+    <button class="create-summary" type="button" data-create-toggle aria-expanded="false">
+      <div>
+        <h2>新增快捷项</h2>
+        <p class="muted form-hint">选择一个图标，首页更容易识别。</p>
+      </div>
+      <span class="create-toggle">新增</span>
+    </button>
+    <div class="create-body" data-create-body hidden>
+      <form class="stack-form quick-item-form async-quick-form" method="post" action="/quick-items" autocomplete="off">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-row">
+        <label>
+          <span>名称</span>
+          <input type="text" name="name" maxlength="100" placeholder="例如 认真阅读" autocomplete="off" autocorrect="off" spellcheck="false" required>
+        </label>
+        <label>
+          <span>图标</span>
+          <input class="icon-value-input" type="hidden" name="icon" value="fluent-emoji-flat:open-book">
+          <button class="icon-picker-trigger" type="button" data-icon-picker data-target-name="icon" aria-label="选择图标">
+            <%- renderQuickIcon('fluent-emoji-flat:open-book', '📚', 'selected-icon-preview') %>
+            <span class="selected-icon-name">阅读</span>
+          </button>
+        </label>
+      </div>
+      <div class="form-row">
+        <label>
+          <span>积分</span>
+          <input type="number" name="points" step="1" inputmode="numeric" placeholder="5 或 -3" autocomplete="off" required>
+        </label>
+        <label>
+          <span>排序</span>
+          <input type="number" name="sortOrder" step="1" inputmode="numeric" value="<%= nextSortOrder %>" aria-label="排序，数字越小越靠前" autocomplete="off" required>
+        </label>
+      </div>
+      <div class="form-footer">
+        <label class="check-line">
+          <input type="checkbox" name="enabled" value="1" checked>
+          <span>立即启用</span>
+        </label>
+        <button class="primary-button" type="submit">新增快捷项</button>
+      </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="quick-manage-section">
+    <div class="section-title quick-list-title">
+      <div>
+        <h2>全部快捷项</h2>
+        <p class="muted form-hint">排序数字越小，首页显示越靠前。</p>
+      </div>
+      <span class="list-count"><%= quickItems.length %> 项</span>
+    </div>
+
+    <% if (quickItems.length === 0) { %>
+      <div class="card empty">还没有快捷项。</div>
+    <% } %>
+
+    <div class="quick-editor-list">
+      <% quickItems.forEach(function(item) { %>
+        <details class="card item-editor <%= item.enabled ? '' : 'disabled' %>">
+          <summary class="item-editor-summary">
+            <div class="item-preview <%= item.points > 0 ? 'add' : 'subtract' %>">
+              <%- renderQuickIcon(item.icon, item.points > 0 ? '⭐' : '☁️', 'item-preview-icon') %>
+              <div>
+                <h3><%= item.name %></h3>
+                <span><%= item.points > 0 ? '+' : '' %><%= item.points %> 分 · 位置 <%= item.sort_order %></span>
+              </div>
+            </div>
+            <div class="item-summary-actions">
+              <div class="item-badges">
+                <span class="status-pill <%= item.enabled ? 'enabled' : 'disabled' %>"><%= item.enabled ? '启用中' : '已停用' %></span>
+                <span class="type-pill <%= item.points > 0 ? 'add' : 'subtract' %>"><%= item.points > 0 ? '加分' : '减分' %></span>
+              </div>
+              <span class="edit-toggle">编辑</span>
+            </div>
+          </summary>
+
+          <form class="stack-form quick-item-form async-quick-form" method="post" action="/quick-items/<%= item.id %>" autocomplete="off">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="form-row">
+              <label>
+                <span>名称</span>
+                <input type="text" name="name" maxlength="100" value="<%= item.name %>" autocomplete="off" autocorrect="off" spellcheck="false" required>
+              </label>
+              <label>
+                <span>图标</span>
+                <input class="icon-value-input" type="hidden" name="icon" value="<%= item.icon || '' %>">
+                <button class="icon-picker-trigger" type="button" data-icon-picker data-target-name="icon" aria-label="选择图标">
+                  <%- renderQuickIcon(item.icon, item.points > 0 ? '⭐' : '☁️', 'selected-icon-preview') %>
+                  <span class="selected-icon-name">选择图标</span>
+                </button>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                <span>积分</span>
+                <input type="number" name="points" step="1" inputmode="numeric" value="<%= item.points %>" autocomplete="off" required>
+              </label>
+              <label>
+                <span>排序</span>
+                <input type="number" name="sortOrder" step="1" inputmode="numeric" value="<%= item.sort_order %>" aria-label="排序，数字越小越靠前" autocomplete="off" required>
+              </label>
+            </div>
+            <div class="form-footer">
+              <label class="check-line">
+                <input type="checkbox" name="enabled" value="1" <%= item.enabled ? 'checked' : '' %>>
+                <span>首页展示</span>
+              </label>
+              <button class="primary-button compact" type="submit">保存</button>
+            </div>
+          </form>
+
+          <form class="button-row async-quick-form" method="post" action="/quick-items/<%= item.id %>/delete" data-confirm-title="停用快捷项" data-confirm-detail="<%= item.name %> 将不再显示在首页。">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="danger-button compact" type="submit" <%= item.enabled ? '' : 'disabled' %>>停用</button>
+          </form>
+        </details>
+      <% }) %>
+    </div>
+  </section>
+
+  <dialog class="icon-picker-dialog" id="iconPickerDialog" aria-labelledby="iconPickerTitle">
+    <div class="icon-picker-head">
+      <div>
+        <h2 id="iconPickerTitle">选择图标</h2>
+        <p class="muted form-hint">只展示彩色图案图标。</p>
+      </div>
+      <button class="ghost-button compact" type="button" data-icon-picker-close>关闭</button>
+    </div>
+    <div class="icon-picker-search">
+      <input type="search" id="iconPickerSearch" placeholder="搜索：阅读、家务、奖励、拖拉">
+    </div>
+    <div class="icon-picker-grid" id="iconPickerGrid">
+      <% iconChoices.forEach(function(icon) { %>
+        <button class="icon-choice" type="button" data-icon-value="<%= icon.value %>" data-icon-label="<%= icon.label %>">
+          <%- renderQuickIcon(icon.value, '', 'icon-choice-glyph') %>
+          <span><%= icon.label %></span>
+        </button>
+      <% }) %>
+    </div>
+  </dialog>
+</main>
+
+<script src="/quick-items.js"></script>
+<%- include('partials/footer') %>

@@ -1,0 +1,29 @@
+{
+  "name": "xiaoyue-jifen",
+  "version": "1.0.0",
+  "description": "A mobile-first child points management system built with Node.js, Express, EJS, and MySQL.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "@iconify-json/fluent-emoji-flat": "^1.2.5",
+    "@iconify-json/lucide": "^1.2.107",
+    "bcryptjs": "^2.4.3",
+    "connect-flash": "^0.1.1",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "helmet": "^8.0.0",
+    "iconify-icon": "^3.0.2",
+    "mysql2": "^3.11.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,108 @@
+<%- include('partials/header') %>
+
+<main class="home-layout">
+  <section class="score-panel card">
+    <div class="score-copy">
+      <p class="eyebrow">当前总积分</p>
+    </div>
+    <div class="score-value">
+      <strong><%= currentScore %></strong>
+      <span>分</span>
+    </div>
+  </section>
+
+  <section class="card action-card">
+    <div class="section-title">
+      <h2>快捷操作</h2>
+      <a href="/quick-items">管理</a>
+    </div>
+
+    <% if (addItems.length === 0 && subtractItems.length === 0) { %>
+      <p class="empty">还没有快捷项。</p>
+    <% } %>
+
+    <div class="quick-section add-section">
+      <div class="quick-section-head">
+        <h3>加分</h3>
+        <span><%= addItems.length %> 项</span>
+      </div>
+      <div class="quick-grid">
+        <% if (addItems.length === 0) { %>
+          <p class="empty">还没有加分快捷项。</p>
+        <% } %>
+        <% addItems.forEach(function(item) { %>
+          <form class="async-score-form" method="post" action="/score/quick/<%= item.id %>" data-keep-values="1">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="quick-button add" type="submit">
+              <%- renderQuickIcon(item.icon, '⭐', 'quick-icon') %>
+              <span class="quick-name"><%= item.name %></span>
+              <strong>+<%= item.points %></strong>
+            </button>
+          </form>
+        <% }) %>
+      </div>
+    </div>
+
+    <div class="quick-section subtract-section">
+      <div class="quick-section-head">
+        <h3>减分</h3>
+        <span><%= subtractItems.length %> 项</span>
+      </div>
+      <div class="quick-grid">
+        <% if (subtractItems.length === 0) { %>
+          <p class="empty">还没有减分快捷项。</p>
+        <% } %>
+        <% subtractItems.forEach(function(item) { %>
+          <form class="async-score-form" method="post" action="/score/quick/<%= item.id %>" data-confirm-title="确认减分" data-confirm-detail="<%= item.name %> · <%= item.points %> 分" data-keep-values="1">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="quick-button subtract" type="submit">
+              <%- renderQuickIcon(item.icon, '☁️', 'quick-icon') %>
+              <span class="quick-name"><%= item.name %></span>
+              <strong><%= item.points %></strong>
+            </button>
+          </form>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <details class="card more-actions">
+    <summary>更多操作</summary>
+    <div class="more-actions-grid">
+      <section>
+        <h2>手动记录</h2>
+        <form class="stack-form async-score-form" method="post" action="/score/manual">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label>
+            <span>积分变化</span>
+            <input type="number" name="pointsDelta" step="1" placeholder="例如 5 或 -3" required>
+          </label>
+          <label>
+            <span>原因</span>
+            <input type="text" name="reason" maxlength="255" placeholder="例如 主动整理书桌" required>
+          </label>
+          <button class="primary-button" type="submit">保存记录</button>
+        </form>
+      </section>
+
+      <section>
+        <h2>设置总积分</h2>
+        <form class="stack-form async-score-form" method="post" action="/score/adjust" data-confirm-title="校准总积分" data-confirm-detail="系统会生成一条调整流水。" data-keep-values="1">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label>
+            <span>目标总积分</span>
+            <input type="number" name="targetScore" step="1" placeholder="例如 100" required>
+          </label>
+          <label>
+            <span>校准原因</span>
+            <input type="text" name="reason" maxlength="255" value="设置总积分">
+          </label>
+          <button class="secondary-button" type="submit">校准积分</button>
+        </form>
+      </section>
+    </div>
+  </details>
+</main>
+
+<script src="/app-actions.js"></script>
+<%- include('partials/footer') %>

@@ -1,0 +1,85 @@
+const iconAliases = {
+  'lucide:book-open': 'fluent-emoji-flat:open-book',
+  'lucide:book': 'fluent-emoji-flat:books',
+  'lucide:notebook-pen': 'fluent-emoji-flat:memo',
+  'lucide:pencil': 'fluent-emoji-flat:pencil',
+  'lucide:pen-line': 'fluent-emoji-flat:pencil',
+  'lucide:school': 'fluent-emoji-flat:school',
+  'lucide:graduation-cap': 'fluent-emoji-flat:graduation-cap',
+  'lucide:calculator': 'fluent-emoji-flat:abacus',
+  'lucide:palette': 'fluent-emoji-flat:artist-palette',
+  'lucide:music': 'fluent-emoji-flat:musical-notes',
+  'lucide:drum': 'fluent-emoji-flat:musical-notes',
+  'lucide:mic': 'fluent-emoji-flat:microphone',
+  'lucide:trophy': 'fluent-emoji-flat:trophy',
+  'lucide:award': 'fluent-emoji-flat:1st-place-medal',
+  'lucide:medal': 'fluent-emoji-flat:sports-medal',
+  'lucide:badge-check': 'fluent-emoji-flat:check-mark-button',
+  'lucide:star': 'fluent-emoji-flat:glowing-star',
+  'lucide:sparkles': 'fluent-emoji-flat:glowing-star',
+  'lucide:heart': 'fluent-emoji-flat:red-heart',
+  'lucide:smile': 'fluent-emoji-flat:smiling-face-with-smiling-eyes',
+  'lucide:sun': 'fluent-emoji-flat:sun',
+  'lucide:moon': 'fluent-emoji-flat:crescent-moon',
+  'lucide:bed': 'fluent-emoji-flat:sleeping-face',
+  'lucide:alarm-clock': 'fluent-emoji-flat:alarm-clock',
+  'lucide:clock': 'fluent-emoji-flat:alarm-clock',
+  'lucide:calendar-check': 'fluent-emoji-flat:tear-off-calendar',
+  'lucide:house': 'fluent-emoji-flat:house',
+  'lucide:brush-cleaning': 'fluent-emoji-flat:broom',
+  'lucide:utensils': 'fluent-emoji-flat:fork-and-knife',
+  'lucide:shirt': 'fluent-emoji-flat:t-shirt',
+  'lucide:soap-dispenser-droplet': 'fluent-emoji-flat:soap',
+  'lucide:leaf': 'fluent-emoji-flat:leafy-green',
+  'lucide:bike': 'fluent-emoji-flat:bicycle',
+  'lucide:dumbbell': 'fluent-emoji-flat:person-running',
+  'lucide:footprints': 'fluent-emoji-flat:person-running',
+  'lucide:gamepad-2': 'fluent-emoji-flat:video-game',
+  'lucide:tv': 'fluent-emoji-flat:television',
+  'lucide:tablet': 'fluent-emoji-flat:mobile-phone',
+  'lucide:message-circle': 'fluent-emoji-flat:speech-balloon',
+  'lucide:hand-heart': 'fluent-emoji-flat:handshake',
+  'lucide:hand-helping': 'fluent-emoji-flat:handshake',
+  'lucide:thumbs-up': 'fluent-emoji-flat:thumbs-up',
+  'lucide:target': 'fluent-emoji-flat:bullseye',
+  'lucide:gift': 'fluent-emoji-flat:wrapped-gift',
+  'lucide:shopping-bag': 'fluent-emoji-flat:shopping-bags',
+  'lucide:piggy-bank': 'fluent-emoji-flat:money-bag',
+  'lucide:coins': 'fluent-emoji-flat:coin',
+  'lucide:wallet': 'fluent-emoji-flat:money-bag',
+  'lucide:apple': 'fluent-emoji-flat:green-apple',
+  'lucide:banana': 'fluent-emoji-flat:banana',
+  'lucide:carrot': 'fluent-emoji-flat:carrot',
+  'lucide:milk': 'fluent-emoji-flat:glass-of-milk',
+  'lucide:cake': 'fluent-emoji-flat:birthday-cake',
+  'lucide:ice-cream-bowl': 'fluent-emoji-flat:soft-ice-cream',
+  'lucide:cloud-rain': 'fluent-emoji-flat:cloud-with-rain',
+  'lucide:angry': 'fluent-emoji-flat:angry-face',
+  'lucide:frown': 'fluent-emoji-flat:frowning-face',
+  'lucide:snail': 'fluent-emoji-flat:snail',
+  'lucide:trash-2': 'fluent-emoji-flat:wastebasket',
+  'lucide:volume-2': 'fluent-emoji-flat:speaker-high-volume',
+  'lucide:volume-x': 'fluent-emoji-flat:muted-speaker',
+  'lucide:wifi-off': 'fluent-emoji-flat:warning',
+  'lucide:circle-alert': 'fluent-emoji-flat:warning',
+  'lucide:shield-alert': 'fluent-emoji-flat:warning',
+  'lucide:triangle-alert': 'fluent-emoji-flat:warning',
+  'lucide:thumbs-down': 'fluent-emoji-flat:thumbs-down',
+  'lucide:circle-x': 'fluent-emoji-flat:cross-mark',
+  'lucide:book-x': 'fluent-emoji-flat:cross-mark',
+  'lucide:timer-off': 'fluent-emoji-flat:alarm-clock'
+};
+
+function normalizeQuickIcon(value) {
+  const icon = String(value || '').trim();
+  return iconAliases[icon] || icon;
+}
+
+function isIconifyName(value) {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+
+module.exports = {
+  normalizeQuickIcon,
+  isIconifyName
+};

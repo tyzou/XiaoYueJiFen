@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    container_name: xiaoyue-jifen
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-3000}:3000"

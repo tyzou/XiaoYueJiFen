@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/vendor/iconify-preload.js"></script>
+    <script src="/vendor/iconify-icon.min.js"></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <% if (isAuthenticated) { %>
+        <header class="topbar">
+          <a class="brand" href="/">
+            <span class="brand-mark">🌟</span>
+            <span>小月积分</span>
+          </a>
+          <form method="post" action="/logout">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="ghost-button" type="submit">退出</button>
+          </form>
+        </header>
+
+      <% } %>
+
+      <% if (flash.success.length || flash.error.length) { %>
+        <section class="flash-area">
+          <% flash.success.forEach(function(message) { %>
+            <div class="flash success"><%= message %></div>
+          <% }) %>
+          <% flash.error.forEach(function(message) { %>
+            <div class="flash error"><%= message %></div>
+          <% }) %>
+        </section>
+      <% } %>

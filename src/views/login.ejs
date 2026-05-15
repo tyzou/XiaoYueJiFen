@@ -1,0 +1,20 @@
+<%- include('partials/header') %>
+
+<main class="login-wrap">
+  <section class="login-card">
+    <div class="hero-icon">🍭</div>
+    <h1>小月积分屋</h1>
+    <p>输入管理密码，开始记录今天的好习惯。</p>
+
+    <form class="stack-form" method="post" action="/login">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>
+        <span>管理密码</span>
+        <input type="password" name="password" autocomplete="current-password" required>
+      </label>
+      <button class="primary-button wide" type="submit">进入积分屋</button>
+    </form>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
