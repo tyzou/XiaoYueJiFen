@@ -8,6 +8,11 @@
   const createToggle = document.querySelector('[data-create-toggle]');
   const createDialog = document.querySelector('[data-create-dialog]');
   const createCloseButton = document.querySelector('[data-create-close]');
+  const quickDialogForm = document.querySelector('[data-quick-dialog-form]');
+  const quickDialogTitle = document.querySelector('[data-dialog-title]');
+  const quickDialogHint = document.querySelector('[data-dialog-hint]');
+  const quickSubmitLabel = document.querySelector('[data-submit-label]');
+  const quickEnabledLabel = document.querySelector('[data-enabled-label]');
   const editorLists = Array.from(document.querySelectorAll('.quick-editor-list'));
   const quickTabs = Array.from(document.querySelectorAll('[data-quick-tab]'));
   const quickPanels = Array.from(document.querySelectorAll('[data-quick-panel]'));
@@ -15,6 +20,7 @@
   const metricValues = Array.from(document.querySelectorAll('.quick-admin-metrics strong'));
   let activeTrigger = null;
   let activeInput = null;
+  let editingEditor = null;
 
   const iconAliases = {
     'lucide:book-open': 'fluent-emoji-flat:open-book',
@@ -72,6 +78,29 @@
     return;
   }
 
+  function setDialogMode(mode) {
+    if (!quickDialogForm) {
+      return;
+    }
+    const isEdit = mode === 'edit';
+    quickDialogForm.dataset.mode = isEdit ? 'edit' : 'create';
+    quickDialogForm.action = isEdit && editingEditor
+      ? `/quick-items/${editingEditor.dataset.itemId}`
+      : '/quick-items';
+    if (quickDialogTitle) {
+      quickDialogTitle.textContent = isEdit ? '编辑快捷项' : '新增快捷项';
+    }
+    if (quickDialogHint) {
+      quickDialogHint.textContent = isEdit ? '修改后会同步更新首页快捷按钮。' : '选择一个图标，首页更容易识别。';
+    }
+    if (quickSubmitLabel) {
+      quickSubmitLabel.textContent = isEdit ? '保存' : '新增快捷项';
+    }
+    if (quickEnabledLabel) {
+      quickEnabledLabel.textContent = isEdit ? '首页展示' : '立即启用';
+    }
+  }
+
   function setCreateOpen(isOpen) {
     if (!createDialog) {
       return;
@@ -112,6 +141,11 @@
 
   if (createToggle && createDialog) {
     createToggle.addEventListener('click', () => {
+      if (!createDialog.open && quickDialogForm) {
+        editingEditor = null;
+        resetCreateForm(quickDialogForm);
+        setDialogMode('create');
+      }
       setCreateOpen(!createDialog.open);
     });
   }
@@ -264,32 +298,57 @@
     return span.outerHTML;
   }
 
-  function syncEditorSummary(form) {
-    const editor = form.closest('.item-editor');
-    if (!editor || form.action.endsWith('/delete')) {
-      return;
-    }
+  function readFormData(form) {
+    const name = form.querySelector('input[name="name"]')?.value.trim() || '';
+    const points = Number(form.querySelector('input[name="points"]')?.value || 0);
+    const sortOrder = Number(form.querySelector('input[name="sortOrder"]')?.value || 0);
+    const icon = normalizeIcon(form.querySelector('input[name="icon"]')?.value || '');
+    const enabled = Boolean(form.querySelector('input[name="enabled"]')?.checked);
+    return { name, points, sortOrder, icon, enabled };
+  }
+
+  function writeFormData(form, data) {
     const nameInput = form.querySelector('input[name="name"]');
     const pointsInput = form.querySelector('input[name="points"]');
     const sortInput = form.querySelector('input[name="sortOrder"]');
     const iconInput = form.querySelector('input[name="icon"]');
-    const enabledInput = form.querySelector('input[name="enabled"]:checked');
-    if (!nameInput || !pointsInput || !sortInput || !iconInput) {
+    const enabledInput = form.querySelector('input[name="enabled"]');
+    const trigger = form.querySelector('[data-icon-picker]');
+
+    if (nameInput) {
+      nameInput.value = data.name || '';
+    }
+    if (pointsInput) {
+      pointsInput.value = data.points || '';
+    }
+    if (sortInput) {
+      sortInput.value = data.sortOrder || '';
+    }
+    if (iconInput) {
+      iconInput.value = normalizeIcon(data.icon || 'fluent-emoji-flat:open-book');
+    }
+    if (enabledInput) {
+      enabledInput.checked = data.enabled !== false;
+    }
+    if (trigger) {
+      syncTrigger(trigger);
+    }
+  }
+
+  function syncEditorSummary(editor, data) {
+    if (!editor) {
       return;
     }
-    const name = nameInput.value.trim();
-    const points = Number(pointsInput.value);
-    const sortOrder = sortInput.value;
-    const icon = normalizeIcon(iconInput.value);
-    const enabled = Boolean(enabledInput);
+    const { name, points, sortOrder, icon, enabled } = data;
     const preview = editor.querySelector('.item-preview');
     const title = editor.querySelector('.item-preview h3');
     const meta = editor.querySelector('.item-preview h3 + span');
-    const status = editor.querySelector('.status-pill');
     const type = editor.querySelector('.type-pill');
     const iconNode = editor.querySelector('.item-preview-icon');
-    const deleteForm = editor.querySelector('.button-row.async-quick-form');
-    const deleteButton = deleteForm?.querySelector('button[type="submit"]');
+    const deleteForm = editor.querySelector('form[action$="/delete"]');
+    const toggleForm = editor.querySelector('[data-toggle-form]');
+    const toggle = editor.querySelector('[data-enabled-toggle]');
+    const switchLabel = editor.querySelector('.switch-label');
 
     if (preview) {
       preview.classList.toggle('add', points > 0);
@@ -301,11 +360,6 @@
     if (meta) {
       meta.textContent = `${points > 0 ? '+' : ''}${points} 分 · 位置 ${sortOrder}`;
     }
-    if (status) {
-      status.classList.toggle('enabled', enabled);
-      status.classList.toggle('disabled', !enabled);
-      status.textContent = enabled ? '启用中' : '已停用';
-    }
     if (type) {
       type.classList.toggle('add', points > 0);
       type.classList.toggle('subtract', points < 0);
@@ -315,18 +369,24 @@
       iconNode.outerHTML = iconMarkup(icon, 'item-preview-icon');
     }
     if (deleteForm) {
-      deleteForm.dataset.confirmDetail = `${name} 将不再显示在首页。`;
+      deleteForm.dataset.confirmDetail = `${name} 将从快捷项列表移除，历史流水会保留。`;
     }
-    if (deleteButton) {
-      deleteButton.disabled = !enabled;
-      if (enabled) {
-        delete deleteButton.dataset.keepDisabled;
-      } else {
-        deleteButton.dataset.keepDisabled = '1';
-      }
+    if (toggleForm) {
+      writeFormData(toggleForm, data);
+    }
+    if (toggle) {
+      toggle.checked = enabled;
+    }
+    if (switchLabel) {
+      switchLabel.textContent = enabled ? '启用' : '禁用';
     }
     editor.classList.toggle('disabled', !enabled);
-    hydrateEditorMetadata(editor);
+    editor.dataset.name = name;
+    editor.dataset.points = String(points);
+    editor.dataset.sortOrder = String(sortOrder);
+    editor.dataset.icon = icon;
+    editor.dataset.enabled = enabled ? '1' : '0';
+    editor.dataset.pointsType = points > 0 ? 'add' : 'subtract';
   }
 
   function syncDeletedEditor(form) {
@@ -337,37 +397,20 @@
     if (!editor) {
       return;
     }
-    const checkbox = editor.querySelector('input[name="enabled"]');
-    const status = editor.querySelector('.status-pill');
-    const deleteButton = form.querySelector('button[type="submit"]');
-    editor.classList.add('disabled');
-    if (checkbox) {
-      checkbox.checked = false;
-    }
-    if (deleteButton) {
-      deleteButton.dataset.keepDisabled = '1';
-      deleteButton.disabled = true;
-    }
-    if (status) {
-      status.classList.remove('enabled');
-      status.classList.add('disabled');
-      status.textContent = '已停用';
-    }
-    hydrateEditorMetadata(editor);
+    editor.remove();
+    updatePageSummary();
   }
 
   function readEditorData(editor) {
-    const form = editor.querySelector('form.quick-item-form');
-    if (!form) {
+    if (!editor) {
       return null;
     }
-    const idMatch = form.action.match(/\/quick-items\/(\d+)$/);
-    const id = Number(editor.dataset.itemId || (idMatch ? idMatch[1] : 0));
-    const name = form.querySelector('input[name="name"]')?.value.trim() || '';
-    const points = Number(form.querySelector('input[name="points"]')?.value || 0);
-    const sortOrder = Number(form.querySelector('input[name="sortOrder"]')?.value || 0);
-    const icon = normalizeIcon(form.querySelector('input[name="icon"]')?.value || '');
-    const enabled = Boolean(form.querySelector('input[name="enabled"]')?.checked);
+    const id = Number(editor.dataset.itemId || 0);
+    const name = editor.dataset.name || '';
+    const points = Number(editor.dataset.points || 0);
+    const sortOrder = Number(editor.dataset.sortOrder || 0);
+    const icon = normalizeIcon(editor.dataset.icon || '');
+    const enabled = editor.dataset.enabled === '1';
     return { id, name, points, sortOrder, icon, enabled };
   }
 
@@ -381,6 +424,8 @@
     editor.dataset.points = String(data.points);
     editor.dataset.sortOrder = String(data.sortOrder);
     editor.dataset.pointsType = data.points > 0 ? 'add' : 'subtract';
+    editor.dataset.icon = data.icon;
+    editor.dataset.name = data.name;
   }
 
   function compareEditors(left, right) {
@@ -513,6 +558,17 @@
     }
   }
 
+  function openEditDialog(editor) {
+    if (!quickDialogForm || !editor) {
+      return;
+    }
+    editingEditor = editor;
+    const data = readEditorData(editor);
+    writeFormData(quickDialogForm, data);
+    setDialogMode('edit');
+    setCreateOpen(true);
+  }
+
   function csrfToken() {
     return document.querySelector('input[name="_csrf"]')?.value || '';
   }
@@ -526,17 +582,18 @@
     const name = String(item.name || '');
     const typeClass = points > 0 ? 'add' : 'subtract';
     const typeLabel = points > 0 ? '加分' : '减分';
-    const statusLabel = enabled ? '启用中' : '已停用';
-    const selectedLabel = getLabelForIcon(icon);
-    const details = document.createElement('details');
+    const article = document.createElement('article');
 
-    details.className = `card item-editor ${enabled ? '' : 'disabled'}`.trim();
-    details.dataset.itemId = String(id);
-    details.dataset.enabled = enabled ? '1' : '0';
-    details.dataset.points = String(points);
-    details.dataset.sortOrder = String(sortOrder);
-    details.innerHTML = `
-      <summary class="item-editor-summary">
+    article.className = `card item-editor ${enabled ? '' : 'disabled'}`.trim();
+    article.dataset.itemId = String(id);
+    article.dataset.name = name;
+    article.dataset.enabled = enabled ? '1' : '0';
+    article.dataset.points = String(points);
+    article.dataset.icon = icon;
+    article.dataset.sortOrder = String(sortOrder);
+    article.dataset.pointsType = typeClass;
+    article.innerHTML = `
+      <div class="item-editor-summary">
         <div class="item-preview ${typeClass}">
           ${iconMarkup(icon || (points > 0 ? '⭐' : '☁️'), 'item-preview-icon')}
           <div>
@@ -545,58 +602,38 @@
           </div>
         </div>
         <div class="item-summary-actions">
-          <div class="item-badges">
-            <span class="status-pill ${enabled ? 'enabled' : 'disabled'}">${statusLabel}</span>
+          <div class="item-controls">
+            <form class="quick-toggle-form async-quick-form" method="post" action="/quick-items/${id}" data-toggle-form>
+              <input type="hidden" name="_csrf" value="${escapeHtml(csrfToken())}">
+              <input type="hidden" name="name" value="${escapeHtml(name)}">
+              <input type="hidden" name="points" value="${points}">
+              <input type="hidden" name="icon" value="${escapeHtml(icon)}">
+              <input type="hidden" name="sortOrder" value="${sortOrder}">
+              <label class="switch-control">
+                <input type="checkbox" name="enabled" value="1" data-enabled-toggle ${enabled ? 'checked' : ''}>
+                <span class="switch-track" aria-hidden="true">
+                  <span class="switch-thumb"></span>
+                </span>
+                <span class="switch-label">${enabled ? '启用' : '禁用'}</span>
+              </label>
+            </form>
             <span class="type-pill ${typeClass}">${typeLabel}</span>
           </div>
-          <span class="edit-toggle">编辑</span>
+          <div class="item-action-buttons">
+            <button class="edit-toggle" type="button" data-edit-item>编辑</button>
+            <form class="inline-delete-form async-quick-form" method="post" action="/quick-items/${id}/delete" data-confirm-title="删除快捷项" data-confirm-detail="${escapeHtml(name)} 将从快捷项列表移除，历史流水会保留。">
+              <input type="hidden" name="_csrf" value="${escapeHtml(csrfToken())}">
+              <button class="danger-button compact" type="submit">删除</button>
+            </form>
+          </div>
         </div>
-      </summary>
-
-      <form class="stack-form quick-item-form async-quick-form" method="post" action="/quick-items/${id}" autocomplete="off">
-        <input type="hidden" name="_csrf" value="${escapeHtml(csrfToken())}">
-        <div class="form-row">
-          <label>
-            <span>名称</span>
-            <input type="text" name="name" maxlength="100" value="${escapeHtml(name)}" autocomplete="off" autocorrect="off" spellcheck="false" required>
-          </label>
-          <label>
-            <span>图标</span>
-            <input class="icon-value-input" type="hidden" name="icon" value="${escapeHtml(icon)}">
-            <button class="icon-picker-trigger" type="button" data-icon-picker data-target-name="icon" aria-label="选择图标">
-              ${iconMarkup(icon || (points > 0 ? '⭐' : '☁️'), 'selected-icon-preview')}
-              <span class="selected-icon-name">${escapeHtml(selectedLabel)}</span>
-            </button>
-          </label>
-        </div>
-        <div class="form-row">
-          <label>
-            <span>积分</span>
-            <input type="number" name="points" step="1" inputmode="numeric" value="${points}" autocomplete="off" required>
-          </label>
-          <label>
-            <span>排序</span>
-            <input type="number" name="sortOrder" step="1" inputmode="numeric" value="${sortOrder}" aria-label="排序，数字越小越靠前" autocomplete="off" required>
-          </label>
-        </div>
-        <div class="form-footer">
-          <label class="check-line">
-            <input type="checkbox" name="enabled" value="1" ${enabled ? 'checked' : ''}>
-            <span>首页展示</span>
-          </label>
-          <button class="primary-button compact" type="submit">保存</button>
-        </div>
-      </form>
-
-      <form class="button-row async-quick-form" method="post" action="/quick-items/${id}/delete" data-confirm-title="停用快捷项" data-confirm-detail="${escapeHtml(name)} 将不再显示在首页。">
-        <input type="hidden" name="_csrf" value="${escapeHtml(csrfToken())}">
-        <button class="danger-button compact" type="submit" ${enabled ? '' : 'disabled'}>停用</button>
-      </form>
+      </div>
     `;
 
-    bindIconTrigger(details.querySelector('[data-icon-picker]'));
-    details.querySelectorAll('.async-quick-form').forEach(bindQuickForm);
-    return details;
+    bindEditButton(article.querySelector('[data-edit-item]'));
+    article.querySelectorAll('[data-enabled-toggle]').forEach(bindEnabledToggle);
+    article.querySelectorAll('.async-quick-form').forEach(bindQuickForm);
+    return article;
   }
 
   function insertCreatedItem(item) {
@@ -611,7 +648,15 @@
   }
 
   function isCreateForm(form) {
-    return Boolean(form.closest('.quick-create-panel'));
+    return form.dataset.mode === 'create';
+  }
+
+  function isEditForm(form) {
+    return form.dataset.mode === 'edit';
+  }
+
+  function isToggleForm(form) {
+    return Boolean(form.closest('.item-editor') && form.dataset.toggleForm !== undefined);
   }
 
   async function parseJsonResponse(response) {
@@ -727,6 +772,34 @@
     trigger.addEventListener('click', () => openPicker(trigger));
   }
 
+  function bindEditButton(button) {
+    if (!button || button.dataset.editBound) {
+      return;
+    }
+    button.dataset.editBound = '1';
+    button.addEventListener('click', () => {
+      openEditDialog(button.closest('.item-editor'));
+    });
+  }
+
+  function bindEnabledToggle(toggle) {
+    if (!toggle || toggle.dataset.toggleBound) {
+      return;
+    }
+    toggle.dataset.toggleBound = '1';
+    toggle.addEventListener('change', () => {
+      const form = toggle.closest('form');
+      if (!form) {
+        return;
+      }
+      if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+      } else {
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      }
+    });
+  }
+
   function bindQuickForm(form) {
     if (!form || form.dataset.quickFormBound) {
       return;
@@ -755,18 +828,37 @@
           insertCreatedItem(result.item);
           resetCreateForm(form);
           setCreateOpen(false);
-        } else {
-          syncEditorSummary(form);
-          syncDeletedEditor(form);
+        } else if (isEditForm(form)) {
+          const data = readFormData(form);
+          syncEditorSummary(editingEditor, data);
+          if (editingEditor) {
+            placeEditor(editingEditor);
+            activateTab(editingEditor.dataset.pointsType);
+          }
+          updatePageSummary();
+          setCreateOpen(false);
+        } else if (isToggleForm(form)) {
           const editor = form.closest('.item-editor');
+          const data = readFormData(form);
+          syncEditorSummary(editor, data);
           if (editor) {
             placeEditor(editor);
             activateTab(editor.dataset.pointsType);
           }
           updatePageSummary();
+        } else {
+          syncDeletedEditor(form);
+          updatePageSummary();
         }
         showFlash('success', result.message || '已保存。');
       } catch (error) {
+        if (isToggleForm(form)) {
+          const editor = form.closest('.item-editor');
+          const data = readEditorData(editor);
+          if (data) {
+            writeFormData(form, data);
+          }
+        }
         showFlash('error', error.message || '操作失败。');
       } finally {
         setSubmitting(form, false);
@@ -809,5 +901,7 @@
 
   document.querySelectorAll('.item-editor').forEach(hydrateEditorMetadata);
   updatePageSummary();
+  document.querySelectorAll('[data-edit-item]').forEach(bindEditButton);
+  document.querySelectorAll('[data-enabled-toggle]').forEach(bindEnabledToggle);
   document.querySelectorAll('.async-quick-form').forEach(bindQuickForm);
 })();

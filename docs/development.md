@@ -160,8 +160,8 @@ CREATE TABLE score_transactions (
 - `GET /quick-items`：快捷项管理
 - `POST /quick-items`：新增快捷项
 - `POST /quick-items/:id`：编辑快捷项
-- `POST /quick-items/:id/delete`：停用快捷项
-- `GET /transactions`：积分流水
+- `POST /quick-items/:id/delete`：删除快捷项
+- `GET /transactions?days=7|14|30`：积分流水和指定周期统计
 
 ## 7. 部署
 
@@ -186,6 +186,6 @@ http://服务器IP:3000
 - 快捷减分会减少总积分并生成流水。
 - 手动加减分会记录原因。
 - 设置总积分会生成校准流水。
-- 快捷项新增、编辑、停用后首页展示正确。
+- 快捷项新增、编辑、删除后首页展示正确。
 - Docker 重启后数据仍存在。
 - 手机端页面无横向滚动，按钮易点击。

@@ -170,8 +170,8 @@ async function updateQuickItem(id, { name, points, icon, sortOrder, enabled }) {
   );
 }
 
-async function disableQuickItem(id) {
-  await getPool().query('UPDATE quick_items SET enabled = 0 WHERE id = ?', [id]);
+async function deleteQuickItem(id) {
+  await getPool().query('DELETE FROM quick_items WHERE id = ?', [id]);
 }
 
 module.exports = {
@@ -185,5 +185,5 @@ module.exports = {
   adjustScore,
   createQuickItem,
   updateQuickItem,
-  disableQuickItem
+  deleteQuickItem
 };

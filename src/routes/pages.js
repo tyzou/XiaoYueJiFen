@@ -10,7 +10,7 @@ const {
   adjustScore,
   createQuickItem,
   updateQuickItem,
-  disableQuickItem
+  deleteQuickItem
 } = require('../services/scoreService');
 const { requireAuth } = require('../middleware');
 const { normalizeQuickIcon } = require('../icons');
@@ -209,10 +209,10 @@ router.post('/quick-items/:id', async (req, res) => {
 
 router.post('/quick-items/:id/delete', async (req, res) => {
   try {
-    await disableQuickItem(req.params.id);
-    req.flash('success', '快捷项已停用。');
+    await deleteQuickItem(req.params.id);
+    req.flash('success', '快捷项已删除。');
     if (wantsJson(req)) {
-      return res.json({ ok: true, message: '快捷项已停用。' });
+      return res.json({ ok: true, message: '快捷项已删除。' });
     }
   } catch (error) {
     if (wantsJson(req)) {
@@ -225,14 +225,22 @@ router.post('/quick-items/:id/delete', async (req, res) => {
 
 router.get('/transactions', async (req, res, next) => {
   try {
-    const [transactions, transactionStats] = await Promise.all([
+    const allowedStatsDays = [7, 14, 30];
+    const requestedStatsDays = Number(req.query.days);
+    const statsDays = allowedStatsDays.includes(requestedStatsDays) ? requestedStatsDays : 14;
+    const [transactions, statsList] = await Promise.all([
       listTransactions(300),
-      getTransactionStats(14)
+      Promise.all(allowedStatsDays.map((days) => getTransactionStats(days)))
     ]);
+    const transactionStatsByDays = Object.fromEntries(
+      statsList.map((stats) => [String(stats.days), stats])
+    );
     res.render('transactions', {
       title: '积分流水',
       transactions,
-      transactionStats
+      transactionStats: transactionStatsByDays[String(statsDays)],
+      transactionStatsByDays,
+      statsDaysOptions: allowedStatsDays
     });
   } catch (error) {
     next(error);
