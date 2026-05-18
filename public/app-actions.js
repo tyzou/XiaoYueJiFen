@@ -28,6 +28,10 @@
     }, 2400);
   }
 
+  function toUrlEncodedBody(form) {
+    return new URLSearchParams(new FormData(form));
+  }
+
   function setSubmitting(form, submitting) {
     form.querySelectorAll('button').forEach((button) => {
       button.disabled = submitting;
@@ -111,9 +115,10 @@
           method: form.method || 'POST',
           headers: {
             Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
           },
-          body: new FormData(form)
+          body: toUrlEncodedBody(form)
         });
         const result = await response.json();
         if (!response.ok || !result.ok) {

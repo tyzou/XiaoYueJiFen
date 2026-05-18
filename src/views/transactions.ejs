@@ -10,11 +10,6 @@
 %>
 
 <main class="content-grid">
-  <section class="card">
-    <h1>积分流水</h1>
-    <p class="muted">最多展示最近 300 条记录。</p>
-  </section>
-
   <section class="card stats-card">
     <div class="section-title">
       <div>
@@ -45,8 +40,8 @@
         <p class="empty">近 <%= stats.days %> 天还没有记录。</p>
       <% } %>
       <% daily.forEach(function(item) {
-        const addHeight = Math.max(4, Math.round((Number(item.add_points) || 0) / chartMax * 86));
-        const subtractHeight = Math.max(4, Math.round((Number(item.subtract_points) || 0) / chartMax * 86));
+        const addHeight = Math.max(4, Math.round((Number(item.add_points) || 0) / chartMax * 64));
+        const subtractHeight = Math.max(4, Math.round((Number(item.subtract_points) || 0) / chartMax * 64));
         const net = Number(item.net_points) || 0;
         const dayLabel = new Date(item.day).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
       %>
@@ -62,7 +57,7 @@
     </div>
   </section>
 
-  <section class="card">
+  <section class="card transactions-list-card">
     <div class="timeline full">
       <% if (transactions.length === 0) { %>
         <p class="empty">还没有积分记录。</p>

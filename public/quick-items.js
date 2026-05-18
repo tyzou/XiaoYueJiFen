@@ -6,8 +6,11 @@
   const flashArea = document.querySelector('.flash-area') || createFlashArea();
   const confirmDialog = createConfirmDialog();
   const createToggle = document.querySelector('[data-create-toggle]');
-  const createBody = document.querySelector('[data-create-body]');
-  const editorList = document.querySelector('.quick-editor-list');
+  const createDialog = document.querySelector('[data-create-dialog]');
+  const createCloseButton = document.querySelector('[data-create-close]');
+  const editorLists = Array.from(document.querySelectorAll('.quick-editor-list'));
+  const quickTabs = Array.from(document.querySelectorAll('[data-quick-tab]'));
+  const quickPanels = Array.from(document.querySelectorAll('[data-quick-panel]'));
   const listCount = document.querySelector('.list-count');
   const metricValues = Array.from(document.querySelectorAll('.quick-admin-metrics strong'));
   let activeTrigger = null;
@@ -69,12 +72,60 @@
     return;
   }
 
-  if (createToggle && createBody) {
+  function setCreateOpen(isOpen) {
+    if (!createDialog) {
+      return;
+    }
+    if (isOpen) {
+      if (typeof createDialog.showModal === 'function') {
+        createDialog.showModal();
+      } else {
+        createDialog.setAttribute('open', '');
+      }
+      const firstField = createDialog.querySelector('input[name="name"]');
+      if (firstField) {
+        firstField.focus();
+      }
+    } else if (createDialog.open && typeof createDialog.close === 'function') {
+      createDialog.close();
+    } else {
+      createDialog.removeAttribute('open');
+    }
+    if (createToggle) {
+      createToggle.setAttribute('aria-expanded', String(isOpen));
+      createToggle.classList.toggle('open', isOpen);
+    }
+  }
+
+  function isBackdropClick(event, targetDialog) {
+    if (event.target !== targetDialog) {
+      return false;
+    }
+    const rect = targetDialog.getBoundingClientRect();
+    return (
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom
+    );
+  }
+
+  if (createToggle && createDialog) {
     createToggle.addEventListener('click', () => {
-      const isOpen = !createBody.hidden;
-      createBody.hidden = isOpen;
-      createToggle.setAttribute('aria-expanded', String(!isOpen));
-      createToggle.classList.toggle('open', !isOpen);
+      setCreateOpen(!createDialog.open);
+    });
+  }
+
+  if (createCloseButton) {
+    createCloseButton.addEventListener('click', () => setCreateOpen(false));
+  }
+
+  if (createDialog) {
+    createDialog.addEventListener('close', () => setCreateOpen(false));
+    createDialog.addEventListener('click', (event) => {
+      if (isBackdropClick(event, createDialog)) {
+        setCreateOpen(false);
+      }
     });
   }
 
@@ -120,6 +171,10 @@
     window.setTimeout(() => {
       item.remove();
     }, 2400);
+  }
+
+  function toUrlEncodedBody(form) {
+    return new URLSearchParams(new FormData(form));
   }
 
   function setSubmitting(form, submitting) {
@@ -325,6 +380,7 @@
     editor.dataset.enabled = data.enabled ? '1' : '0';
     editor.dataset.points = String(data.points);
     editor.dataset.sortOrder = String(data.sortOrder);
+    editor.dataset.pointsType = data.points > 0 ? 'add' : 'subtract';
   }
 
   function compareEditors(left, right) {
@@ -344,13 +400,15 @@
   }
 
   function placeEditor(editor) {
-    if (!editorList) {
+    const targetList = getEditorListFor(editor);
+    if (!targetList) {
       return;
     }
     hydrateEditorMetadata(editor);
-    const editors = Array.from(editorList.querySelectorAll('.item-editor')).filter((item) => item !== editor);
+    const editors = Array.from(targetList.querySelectorAll('.item-editor')).filter((item) => item !== editor);
     const before = editors.find((item) => compareEditors(editor, item) < 0);
-    editorList.insertBefore(editor, before || null);
+    targetList.insertBefore(editor, before || null);
+    updateTabEmptyStates();
   }
 
   function updatePageSummary() {
@@ -370,6 +428,9 @@
     if (listCount) {
       listCount.textContent = `${data.length} 项`;
     }
+
+    updateTabCounts(data);
+    updateTabEmptyStates();
   }
 
   function removeEmptyMessage() {
@@ -377,6 +438,55 @@
     if (empty) {
       empty.remove();
     }
+  }
+
+  function getPointsType(points) {
+    return Number(points) > 0 ? 'add' : 'subtract';
+  }
+
+  function getEditorListFor(editor) {
+    const data = readEditorData(editor);
+    const type = getPointsType(data?.points || editor.dataset.points || 0);
+    return document.querySelector(`.quick-editor-list[data-points-type="${type}"]`);
+  }
+
+  function updateTabCounts(data) {
+    const source = data || Array.from(document.querySelectorAll('.item-editor')).map(readEditorData).filter(Boolean);
+    const counts = {
+      add: source.filter((item) => item.points > 0).length,
+      subtract: source.filter((item) => item.points < 0).length
+    };
+
+    Object.entries(counts).forEach(([type, count]) => {
+      const node = document.querySelector(`[data-tab-count="${type}"]`);
+      if (node) {
+        node.textContent = count;
+      }
+    });
+  }
+
+  function updateTabEmptyStates() {
+    quickPanels.forEach((panel) => {
+      const list = panel.querySelector('.quick-editor-list');
+      const empty = panel.querySelector('.quick-tab-empty');
+      if (empty && list) {
+        empty.hidden = list.querySelectorAll('.item-editor').length > 0;
+      }
+    });
+  }
+
+  function activateTab(type) {
+    quickTabs.forEach((tab) => {
+      const active = tab.dataset.quickTab === type;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+
+    quickPanels.forEach((panel) => {
+      const active = panel.dataset.quickPanel === type;
+      panel.classList.toggle('active', active);
+      panel.hidden = !active;
+    });
   }
 
   function getNextSortOrder() {
@@ -490,13 +600,13 @@
   }
 
   function insertCreatedItem(item) {
-    if (!editorList || !item) {
+    if (!editorLists.length || !item) {
       return;
     }
     const editor = createEditorElement(item);
     removeEmptyMessage();
-    editorList.appendChild(editor);
     placeEditor(editor);
+    activateTab(getPointsType(item.points));
     updatePageSummary();
   }
 
@@ -634,21 +744,24 @@
           method: form.method || 'POST',
           headers: {
             Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
           },
-          body: new FormData(form)
+          body: toUrlEncodedBody(form)
         });
         const result = await parseJsonResponse(response);
 
         if (isCreateForm(form)) {
           insertCreatedItem(result.item);
           resetCreateForm(form);
+          setCreateOpen(false);
         } else {
           syncEditorSummary(form);
           syncDeletedEditor(form);
           const editor = form.closest('.item-editor');
           if (editor) {
             placeEditor(editor);
+            activateTab(editor.dataset.pointsType);
           }
           updatePageSummary();
         }
@@ -662,6 +775,9 @@
   }
 
   document.querySelectorAll('[data-icon-picker]').forEach(bindIconTrigger);
+  quickTabs.forEach((tab) => {
+    tab.addEventListener('click', () => activateTab(tab.dataset.quickTab));
+  });
 
   choices.forEach((choice) => {
     choice.addEventListener('click', () => {
@@ -686,11 +802,12 @@
   }
 
   dialog.addEventListener('click', (event) => {
-    if (event.target === dialog) {
+    if (isBackdropClick(event, dialog)) {
       closePicker();
     }
   });
 
   document.querySelectorAll('.item-editor').forEach(hydrateEditorMetadata);
+  updatePageSummary();
   document.querySelectorAll('.async-quick-form').forEach(bindQuickForm);
 })();

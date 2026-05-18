@@ -24,7 +24,7 @@
 
       <% } %>
 
-      <% if (flash.success.length || flash.error.length) { %>
+      <% if (path !== '/transactions' && (flash.success.length || flash.error.length)) { %>
         <section class="flash-area">
           <% flash.success.forEach(function(message) { %>
             <div class="flash success"><%= message %></div>

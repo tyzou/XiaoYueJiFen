@@ -80,7 +80,6 @@
     <div class="quick-admin-copy">
       <p class="eyebrow">快捷项管理</p>
       <h1>快捷项</h1>
-      <p class="muted">首页只展示已启用项目；正数加分，负数减分，排序越小越靠前。</p>
     </div>
     <div class="quick-admin-metrics" aria-label="快捷项概览">
       <div>
@@ -102,15 +101,15 @@
     </div>
   </section>
 
-  <section class="card quick-create-panel">
-    <button class="create-summary" type="button" data-create-toggle aria-expanded="false">
+  <dialog class="quick-create-dialog quick-create-panel" id="quickCreateDialog" data-create-dialog aria-labelledby="quickCreateTitle">
+    <div class="create-summary">
       <div>
-        <h2>新增快捷项</h2>
+        <h2 id="quickCreateTitle">新增快捷项</h2>
         <p class="muted form-hint">选择一个图标，首页更容易识别。</p>
       </div>
-      <span class="create-toggle">新增</span>
-    </button>
-    <div class="create-body" data-create-body hidden>
+      <button class="ghost-button compact" type="button" data-create-close>关闭</button>
+    </div>
+    <div class="create-body">
       <form class="stack-form quick-item-form async-quick-form" method="post" action="/quick-items" autocomplete="off">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div class="form-row">
@@ -146,7 +145,7 @@
       </div>
       </form>
     </div>
-  </section>
+  </dialog>
 
   <section class="quick-manage-section">
     <div class="section-title quick-list-title">
@@ -154,75 +153,101 @@
         <h2>全部快捷项</h2>
         <p class="muted form-hint">排序数字越小，首页显示越靠前。</p>
       </div>
-      <span class="list-count"><%= quickItems.length %> 项</span>
+      <div class="quick-list-actions">
+        <button class="create-toggle" type="button" data-create-toggle aria-expanded="false" aria-controls="quickCreateDialog">新增</button>
+        <span class="list-count"><%= quickItems.length %> 项</span>
+      </div>
     </div>
 
     <% if (quickItems.length === 0) { %>
       <div class="card empty">还没有快捷项。</div>
     <% } %>
 
-    <div class="quick-editor-list">
-      <% quickItems.forEach(function(item) { %>
-        <details class="card item-editor <%= item.enabled ? '' : 'disabled' %>">
-          <summary class="item-editor-summary">
-            <div class="item-preview <%= item.points > 0 ? 'add' : 'subtract' %>">
-              <%- renderQuickIcon(item.icon, item.points > 0 ? '⭐' : '☁️', 'item-preview-icon') %>
-              <div>
-                <h3><%= item.name %></h3>
-                <span><%= item.points > 0 ? '+' : '' %><%= item.points %> 分 · 位置 <%= item.sort_order %></span>
-              </div>
-            </div>
-            <div class="item-summary-actions">
-              <div class="item-badges">
-                <span class="status-pill <%= item.enabled ? 'enabled' : 'disabled' %>"><%= item.enabled ? '启用中' : '已停用' %></span>
-                <span class="type-pill <%= item.points > 0 ? 'add' : 'subtract' %>"><%= item.points > 0 ? '加分' : '减分' %></span>
-              </div>
-              <span class="edit-toggle">编辑</span>
-            </div>
-          </summary>
-
-          <form class="stack-form quick-item-form async-quick-form" method="post" action="/quick-items/<%= item.id %>" autocomplete="off">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <div class="form-row">
-              <label>
-                <span>名称</span>
-                <input type="text" name="name" maxlength="100" value="<%= item.name %>" autocomplete="off" autocorrect="off" spellcheck="false" required>
-              </label>
-              <label>
-                <span>图标</span>
-                <input class="icon-value-input" type="hidden" name="icon" value="<%= item.icon || '' %>">
-                <button class="icon-picker-trigger" type="button" data-icon-picker data-target-name="icon" aria-label="选择图标">
-                  <%- renderQuickIcon(item.icon, item.points > 0 ? '⭐' : '☁️', 'selected-icon-preview') %>
-                  <span class="selected-icon-name">选择图标</span>
-                </button>
-              </label>
-            </div>
-            <div class="form-row">
-              <label>
-                <span>积分</span>
-                <input type="number" name="points" step="1" inputmode="numeric" value="<%= item.points %>" autocomplete="off" required>
-              </label>
-              <label>
-                <span>排序</span>
-                <input type="number" name="sortOrder" step="1" inputmode="numeric" value="<%= item.sort_order %>" aria-label="排序，数字越小越靠前" autocomplete="off" required>
-              </label>
-            </div>
-            <div class="form-footer">
-              <label class="check-line">
-                <input type="checkbox" name="enabled" value="1" <%= item.enabled ? 'checked' : '' %>>
-                <span>首页展示</span>
-              </label>
-              <button class="primary-button compact" type="submit">保存</button>
-            </div>
-          </form>
-
-          <form class="button-row async-quick-form" method="post" action="/quick-items/<%= item.id %>/delete" data-confirm-title="停用快捷项" data-confirm-detail="<%= item.name %> 将不再显示在首页。">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <button class="danger-button compact" type="submit" <%= item.enabled ? '' : 'disabled' %>>停用</button>
-          </form>
-        </details>
-      <% }) %>
+    <div class="quick-tabs" role="tablist" aria-label="快捷项类型">
+      <button class="quick-tab active" type="button" role="tab" id="quickTabAdd" aria-selected="true" aria-controls="quickPanelAdd" data-quick-tab="add">
+        <span>加分</span>
+        <strong data-tab-count="add"><%= addItems.length %></strong>
+      </button>
+      <button class="quick-tab" type="button" role="tab" id="quickTabSubtract" aria-selected="false" aria-controls="quickPanelSubtract" data-quick-tab="subtract">
+        <span>减分</span>
+        <strong data-tab-count="subtract"><%= subtractItems.length %></strong>
+      </button>
     </div>
+
+    <%
+      const tabGroups = [
+        { type: 'add', panelId: 'quickPanelAdd', tabId: 'quickTabAdd', items: addItems, emptyText: '还没有加分快捷项。' },
+        { type: 'subtract', panelId: 'quickPanelSubtract', tabId: 'quickTabSubtract', items: subtractItems, emptyText: '还没有减分快捷项。' }
+      ];
+    %>
+
+    <% tabGroups.forEach(function(group) { %>
+      <div class="quick-tab-panel <%= group.type === 'add' ? 'active' : '' %>" id="<%= group.panelId %>" role="tabpanel" aria-labelledby="<%= group.tabId %>" data-quick-panel="<%= group.type %>" <%= group.type === 'add' ? '' : 'hidden' %>>
+          <p class="card empty quick-tab-empty" <%= group.items.length === 0 ? '' : 'hidden' %>><%= group.emptyText %></p>
+          <div class="quick-editor-list" data-points-type="<%= group.type %>">
+            <% group.items.forEach(function(item) { %>
+              <details class="card item-editor <%= item.enabled ? '' : 'disabled' %>">
+                <summary class="item-editor-summary">
+                  <div class="item-preview <%= item.points > 0 ? 'add' : 'subtract' %>">
+                    <%- renderQuickIcon(item.icon, item.points > 0 ? '⭐' : '☁️', 'item-preview-icon') %>
+                    <div>
+                      <h3><%= item.name %></h3>
+                      <span><%= item.points > 0 ? '+' : '' %><%= item.points %> 分 · 位置 <%= item.sort_order %></span>
+                    </div>
+                  </div>
+                  <div class="item-summary-actions">
+                    <div class="item-badges">
+                      <span class="status-pill <%= item.enabled ? 'enabled' : 'disabled' %>"><%= item.enabled ? '启用中' : '已停用' %></span>
+                      <span class="type-pill <%= item.points > 0 ? 'add' : 'subtract' %>"><%= item.points > 0 ? '加分' : '减分' %></span>
+                    </div>
+                    <span class="edit-toggle">编辑</span>
+                  </div>
+                </summary>
+
+                <form class="stack-form quick-item-form async-quick-form" method="post" action="/quick-items/<%= item.id %>" autocomplete="off">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <div class="form-row">
+                    <label>
+                      <span>名称</span>
+                      <input type="text" name="name" maxlength="100" value="<%= item.name %>" autocomplete="off" autocorrect="off" spellcheck="false" required>
+                    </label>
+                    <label>
+                      <span>图标</span>
+                      <input class="icon-value-input" type="hidden" name="icon" value="<%= item.icon || '' %>">
+                      <button class="icon-picker-trigger" type="button" data-icon-picker data-target-name="icon" aria-label="选择图标">
+                        <%- renderQuickIcon(item.icon, item.points > 0 ? '⭐' : '☁️', 'selected-icon-preview') %>
+                        <span class="selected-icon-name">选择图标</span>
+                      </button>
+                    </label>
+                  </div>
+                  <div class="form-row">
+                    <label>
+                      <span>积分</span>
+                      <input type="number" name="points" step="1" inputmode="numeric" value="<%= item.points %>" autocomplete="off" required>
+                    </label>
+                    <label>
+                      <span>排序</span>
+                      <input type="number" name="sortOrder" step="1" inputmode="numeric" value="<%= item.sort_order %>" aria-label="排序，数字越小越靠前" autocomplete="off" required>
+                    </label>
+                  </div>
+                  <div class="form-footer">
+                    <label class="check-line">
+                      <input type="checkbox" name="enabled" value="1" <%= item.enabled ? 'checked' : '' %>>
+                      <span>首页展示</span>
+                    </label>
+                    <button class="primary-button compact" type="submit">保存</button>
+                  </div>
+                </form>
+
+                <form class="button-row async-quick-form" method="post" action="/quick-items/<%= item.id %>/delete" data-confirm-title="停用快捷项" data-confirm-detail="<%= item.name %> 将不再显示在首页。">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="danger-button compact" type="submit" <%= item.enabled ? '' : 'disabled' %>>停用</button>
+                </form>
+              </details>
+            <% }) %>
+          </div>
+      </div>
+    <% }) %>
   </section>
 
   <dialog class="icon-picker-dialog" id="iconPickerDialog" aria-labelledby="iconPickerTitle">
