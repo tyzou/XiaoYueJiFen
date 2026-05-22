@@ -1,9 +1,17 @@
 <%- include('partials/header') %>
+<%
+  const dateOptions = scoreDateOptions || [];
+  const defaultSelectedDate = dateOptions.length > 0 ? dateOptions[0].value : '';
+%>
 
 <main class="home-layout">
   <section class="score-panel card">
     <div class="score-copy">
       <p class="eyebrow">当前总积分</p>
+      <p class="today-score-pill">
+        今日积分
+        <strong class="<%= Number(todayScore || 0) < 0 ? 'is-negative' : '' %>" data-today-score-value><%= Number(todayScore || 0) >= 0 ? '+' : '' %><%= Number(todayScore || 0) %></strong>
+      </p>
     </div>
     <div class="score-value">
       <strong><%= currentScore %></strong>
@@ -12,8 +20,20 @@
   </section>
 
   <section class="card action-card">
-    <div class="section-title">
-      <h2>快捷操作</h2>
+    <div class="section-title home-action-title">
+      <div class="quick-title-tools">
+        <h2>快捷操作</h2>
+        <% if (dateOptions.length > 0) { %>
+          <fieldset class="date-switch" aria-label="记录日期" data-date-selector>
+            <% dateOptions.forEach(function(day, index) { %>
+              <label>
+                <input type="radio" name="scoreDateSelection" value="<%= day.value %>" <%= index === 0 ? 'checked' : '' %>>
+                <span><%= day.label %></span>
+              </label>
+            <% }) %>
+          </fieldset>
+        <% } %>
+      </div>
       <a href="/quick-items">管理</a>
     </div>
 
@@ -33,6 +53,7 @@
         <% addItems.forEach(function(item) { %>
           <form class="async-score-form" method="post" action="/score/quick/<%= item.id %>" data-keep-values="1">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="selectedDate" value="<%= defaultSelectedDate %>" data-selected-date-field>
             <button class="quick-button add" type="submit">
               <%- renderQuickIcon(item.icon, '⭐', 'quick-icon') %>
               <span class="quick-name"><%= item.name %></span>
@@ -55,6 +76,7 @@
         <% subtractItems.forEach(function(item) { %>
           <form class="async-score-form" method="post" action="/score/quick/<%= item.id %>" data-confirm-title="确认减分" data-confirm-detail="<%= item.name %> · <%= item.points %> 分" data-keep-values="1">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="selectedDate" value="<%= defaultSelectedDate %>" data-selected-date-field>
             <button class="quick-button subtract" type="submit">
               <%- renderQuickIcon(item.icon, '☁️', 'quick-icon') %>
               <span class="quick-name"><%= item.name %></span>
@@ -73,6 +95,7 @@
         <h2>手动记录</h2>
         <form class="stack-form async-score-form" method="post" action="/score/manual">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="selectedDate" value="<%= defaultSelectedDate %>" data-selected-date-field>
           <label>
             <span>积分变化</span>
             <input type="number" name="pointsDelta" step="1" placeholder="例如 5 或 -3" required>

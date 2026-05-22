@@ -18,6 +18,7 @@
   const quickPanels = Array.from(document.querySelectorAll('[data-quick-panel]'));
   const listCount = document.querySelector('.list-count');
   const metricValues = Array.from(document.querySelectorAll('.quick-admin-metrics strong'));
+  const itemMoreMenus = new Set();
   let activeTrigger = null;
   let activeInput = null;
   let editingEditor = null;
@@ -106,6 +107,7 @@
       return;
     }
     if (isOpen) {
+      closeItemMoreMenus();
       if (typeof createDialog.showModal === 'function') {
         createDialog.showModal();
       } else {
@@ -619,18 +621,22 @@
             </form>
             <span class="type-pill ${typeClass}">${typeLabel}</span>
           </div>
-          <div class="item-action-buttons">
+          <details class="item-more-menu">
+            <summary aria-label="更多操作"><span aria-hidden="true">&hellip;</span></summary>
+            <div class="item-more-actions">
             <button class="edit-toggle" type="button" data-edit-item>编辑</button>
             <form class="inline-delete-form async-quick-form" method="post" action="/quick-items/${id}/delete" data-confirm-title="删除快捷项" data-confirm-detail="${escapeHtml(name)} 将从快捷项列表移除，历史流水会保留。">
               <input type="hidden" name="_csrf" value="${escapeHtml(csrfToken())}">
               <button class="danger-button compact" type="submit">删除</button>
             </form>
-          </div>
+            </div>
+          </details>
         </div>
       </div>
     `;
 
     bindEditButton(article.querySelector('[data-edit-item]'));
+    article.querySelectorAll('.item-more-menu').forEach(bindItemMoreMenu);
     article.querySelectorAll('[data-enabled-toggle]').forEach(bindEnabledToggle);
     article.querySelectorAll('.async-quick-form').forEach(bindQuickForm);
     return article;
@@ -727,6 +733,7 @@
   }
 
   function openPicker(trigger) {
+    closeItemMoreMenus();
     activeTrigger = trigger;
     activeInput = trigger.parentElement.querySelector(`input[name="${trigger.dataset.targetName}"]`);
     if (activeInput) {
@@ -778,7 +785,32 @@
     }
     button.dataset.editBound = '1';
     button.addEventListener('click', () => {
+      const menu = button.closest('.item-more-menu');
+      if (menu) {
+        closeItemMoreMenus();
+      }
       openEditDialog(button.closest('.item-editor'));
+    });
+  }
+
+  function closeItemMoreMenus(exceptMenu = null) {
+    itemMoreMenus.forEach((menu) => {
+      if (menu !== exceptMenu) {
+        menu.removeAttribute('open');
+      }
+    });
+  }
+
+  function bindItemMoreMenu(menu) {
+    if (!menu || menu.dataset.moreMenuBound) {
+      return;
+    }
+    menu.dataset.moreMenuBound = '1';
+    itemMoreMenus.add(menu);
+    menu.addEventListener('toggle', () => {
+      if (menu.open) {
+        closeItemMoreMenus(menu);
+      }
     });
   }
 
@@ -811,6 +843,7 @@
       if (confirmTitle && !(await requestConfirm(confirmTitle, form.dataset.confirmDetail))) {
         return;
       }
+      closeItemMoreMenus();
       setSubmitting(form, true);
       try {
         const response = await fetch(form.action, {
@@ -868,7 +901,10 @@
 
   document.querySelectorAll('[data-icon-picker]').forEach(bindIconTrigger);
   quickTabs.forEach((tab) => {
-    tab.addEventListener('click', () => activateTab(tab.dataset.quickTab));
+    tab.addEventListener('click', () => {
+      closeItemMoreMenus();
+      activateTab(tab.dataset.quickTab);
+    });
   });
 
   choices.forEach((choice) => {
@@ -901,7 +937,20 @@
 
   document.querySelectorAll('.item-editor').forEach(hydrateEditorMetadata);
   updatePageSummary();
+  document.querySelectorAll('.item-more-menu').forEach(bindItemMoreMenu);
   document.querySelectorAll('[data-edit-item]').forEach(bindEditButton);
   document.querySelectorAll('[data-enabled-toggle]').forEach(bindEnabledToggle);
   document.querySelectorAll('.async-quick-form').forEach(bindQuickForm);
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.item-more-menu')) {
+      closeItemMoreMenus();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeItemMoreMenus();
+    }
+  });
 })();

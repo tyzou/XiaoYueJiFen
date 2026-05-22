@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   getCurrentScore,
+  getTodayScoreChange,
   listEnabledQuickItems,
   listAllQuickItems,
   listTransactions,
@@ -8,12 +9,14 @@ const {
   applyQuickItem,
   applyManualScore,
   adjustScore,
+  deleteTodayTransaction,
   createQuickItem,
   updateQuickItem,
   deleteQuickItem
 } = require('../services/scoreService');
 const { requireAuth } = require('../middleware');
 const { normalizeQuickIcon } = require('../icons');
+const { getRecentDays, resolveSelectedDate } = require('../utils/dateUtils');
 
 const router = express.Router();
 
@@ -48,20 +51,31 @@ function wantsJson(req) {
   return req.xhr || String(req.get('accept') || '').includes('application/json');
 }
 
+function transactionsRedirect(req) {
+  const days = Number(req.body.days);
+  if ([7, 14, 30].includes(days)) {
+    return `/transactions?days=${days}`;
+  }
+  return '/transactions';
+}
+
 router.use(requireAuth);
 
 router.get('/', async (req, res, next) => {
   try {
-    const [currentScore, quickItems] = await Promise.all([
+    const [currentScore, todayScore, quickItems] = await Promise.all([
       getCurrentScore(),
+      getTodayScoreChange(),
       listEnabledQuickItems()
     ]);
 
     res.render('index', {
       title: '小月积分',
       currentScore,
+      todayScore,
       addItems: quickItems.filter((item) => item.points >= 0),
-      subtractItems: quickItems.filter((item) => item.points < 0)
+      subtractItems: quickItems.filter((item) => item.points < 0),
+      scoreDateOptions: getRecentDays()
     });
   } catch (error) {
     next(error);
@@ -70,7 +84,8 @@ router.get('/', async (req, res, next) => {
 
 router.post('/score/quick/:id', async (req, res) => {
   try {
-    const balanceAfter = await applyQuickItem(req.params.id);
+    const selectedDate = resolveSelectedDate(req.body.selectedDate);
+    const balanceAfter = await applyQuickItem(req.params.id, { selectedDate });
     req.flash('success', '积分已更新。');
     if (wantsJson(req)) {
       return res.json({ ok: true, message: '积分已更新。', currentScore: balanceAfter });
@@ -91,8 +106,9 @@ router.post('/score/manual', async (req, res) => {
       throw new Error('积分不能为 0。');
     }
     const reason = normalizeReason(req.body.reason, '手动调整');
+    const selectedDate = resolveSelectedDate(req.body.selectedDate);
 
-    const balanceAfter = await applyManualScore(pointsDelta, reason);
+    const balanceAfter = await applyManualScore(pointsDelta, reason, { selectedDate });
     req.flash('success', '手动积分已记录。');
     if (wantsJson(req)) {
       return res.json({ ok: true, message: '手动积分已记录。', currentScore: balanceAfter });
@@ -135,6 +151,12 @@ router.get('/quick-items', async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+router.get('/settings', (req, res) => {
+  res.render('settings', {
+    title: '设置'
+  });
 });
 
 router.post('/quick-items', async (req, res) => {
@@ -245,6 +267,26 @@ router.get('/transactions', async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+router.post('/transactions/:id/delete', async (req, res) => {
+  try {
+    const balanceAfter = await deleteTodayTransaction(req.params.id);
+    req.flash('success', '积分记录已删除，积分已同步回退。');
+    if (wantsJson(req)) {
+      return res.json({
+        ok: true,
+        message: '积分记录已删除，积分已同步回退。',
+        currentScore: balanceAfter
+      });
+    }
+  } catch (error) {
+    if (wantsJson(req)) {
+      return res.status(400).json({ ok: false, message: error.message });
+    }
+    req.flash('error', error.message);
+  }
+  res.redirect(transactionsRedirect(req));
 });
 
 module.exports = router;

@@ -1,0 +1,88 @@
+<%- include('partials/header') %>
+
+<main class="settings-page">
+  <section class="settings-hero card">
+    <div class="settings-hero-icon" aria-hidden="true">⚙️</div>
+    <div>
+      <p class="eyebrow">设置</p>
+      <h1>小月积分屋</h1>
+      <p class="muted">管理入口、关于信息和账号操作都放在这里。</p>
+    </div>
+  </section>
+
+  <section class="settings-group card">
+    <div class="settings-group-title">
+      <h2>常用</h2>
+    </div>
+    <div class="settings-list">
+      <a class="settings-row" href="/quick-items">
+        <span class="settings-row-icon">📋</span>
+        <span class="settings-row-copy">
+          <strong>快捷项管理</strong>
+          <small>新增、编辑和停用首页快捷按钮</small>
+        </span>
+        <span class="settings-row-arrow" aria-hidden="true">›</span>
+      </a>
+      <a class="settings-row" href="/transactions">
+        <span class="settings-row-icon">📊</span>
+        <span class="settings-row-copy">
+          <strong>积分流水</strong>
+          <small>查看记录和最近统计</small>
+        </span>
+        <span class="settings-row-arrow" aria-hidden="true">›</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="settings-group card">
+    <div class="settings-group-title">
+      <h2>关于</h2>
+    </div>
+    <div class="settings-list">
+      <details class="settings-row settings-details">
+        <summary>
+          <span class="settings-row-icon">🌟</span>
+          <span class="settings-row-copy">
+            <strong>关于我</strong>
+            <small>一个给小朋友记录好习惯的积分屋</small>
+          </span>
+          <span class="settings-row-arrow" aria-hidden="true">›</span>
+        </summary>
+        <p>
+          小月积分屋用于家庭内部记录加分、减分和总积分变化。它更像一本轻量的小账本，帮助家长把每次鼓励和提醒都记清楚。
+        </p>
+      </details>
+      <div class="settings-row">
+        <span class="settings-row-icon">🧾</span>
+        <span class="settings-row-copy">
+          <strong>数据说明</strong>
+          <small>所有记录保存在当前部署的数据库中</small>
+        </span>
+      </div>
+      <div class="settings-row">
+        <span class="settings-row-icon">✨</span>
+        <span class="settings-row-copy">
+          <strong>版本</strong>
+          <small>家庭自用版</small>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="settings-group card">
+    <div class="settings-group-title">
+      <h2>账号</h2>
+    </div>
+    <form class="settings-row settings-logout-form" method="post" action="/logout">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <span class="settings-row-icon">🚪</span>
+      <span class="settings-row-copy">
+        <strong>退出登录</strong>
+        <small>回到管理密码登录页</small>
+      </span>
+      <button class="danger-button compact" type="submit">退出</button>
+    </form>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

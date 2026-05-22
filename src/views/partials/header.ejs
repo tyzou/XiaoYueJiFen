@@ -10,20 +10,6 @@
   </head>
   <body>
     <div class="page-shell">
-      <% if (isAuthenticated) { %>
-        <header class="topbar">
-          <a class="brand" href="/">
-            <span class="brand-mark">🌟</span>
-            <span>小月积分</span>
-          </a>
-          <form method="post" action="/logout">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <button class="ghost-button" type="submit">退出</button>
-          </form>
-        </header>
-
-      <% } %>
-
       <% if (path !== '/transactions' && (flash.success.length || flash.error.length)) { %>
         <section class="flash-area">
           <% flash.success.forEach(function(message) { %>

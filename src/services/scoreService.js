@@ -1,8 +1,19 @@
 const { getPool, withTransaction } = require('../db');
+const { buildTransactionDateTime } = require('../utils/dateUtils');
 
 async function getCurrentScore() {
   const [rows] = await getPool().query("SELECT `value` FROM settings WHERE `key` = 'current_score'");
   return Number(rows[0]?.value || 0);
+}
+
+async function getTodayScoreChange() {
+  const [rows] = await getPool().query(
+    `SELECT COALESCE(SUM(points_delta), 0) AS today_score
+       FROM score_transactions
+      WHERE DATE(created_at) = CURRENT_DATE
+        AND source IN ('quick', 'manual')`
+  );
+  return Number(rows[0]?.today_score || 0);
 }
 
 async function listEnabledQuickItems() {
@@ -23,7 +34,12 @@ async function listTransactions(limit = 100) {
   const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 300);
   const [rows] = await getPool().query(
     `SELECT st.id, st.type, st.points_delta, st.reason, st.source, st.balance_after, st.created_at,
-            qi.name AS quick_item_name, qi.icon AS quick_item_icon
+            qi.name AS quick_item_name, qi.icon AS quick_item_icon,
+            CASE
+              WHEN st.source IN ('quick', 'manual') AND DATE(st.created_at) = CURRENT_DATE
+              THEN 1
+              ELSE 0
+            END AS can_delete
        FROM score_transactions st
        LEFT JOIN quick_items qi ON qi.id = st.quick_item_id
       ORDER BY st.created_at DESC, st.id DESC
@@ -70,7 +86,11 @@ async function getTransactionStats(days = 14) {
   };
 }
 
-async function createScoreTransaction({ type, pointsDelta, reason, source, quickItemId = null }) {
+async function createScoreTransaction({ type, pointsDelta, reason, source, quickItemId = null, selectedDate = null }) {
+  const createdAt = selectedDate
+    ? buildTransactionDateTime(selectedDate, new Date())
+    : null;
+
   return withTransaction(async (connection) => {
     const [settingsRows] = await connection.query(
       "SELECT `value` FROM settings WHERE `key` = 'current_score' FOR UPDATE"
@@ -84,16 +104,16 @@ async function createScoreTransaction({ type, pointsDelta, reason, source, quick
 
     await connection.query(
       `INSERT INTO score_transactions
-        (type, points_delta, reason, source, quick_item_id, balance_after)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [type, pointsDelta, reason, source, quickItemId, balanceAfter]
+        (type, points_delta, reason, source, quick_item_id, balance_after, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
+      [type, pointsDelta, reason, source, quickItemId, balanceAfter, createdAt]
     );
 
     return balanceAfter;
   });
 }
 
-async function applyQuickItem(id) {
+async function applyQuickItem(id, options = {}) {
   const [rows] = await getPool().query(
     'SELECT id, name, points, type, enabled FROM quick_items WHERE id = ?',
     [id]
@@ -109,16 +129,18 @@ async function applyQuickItem(id) {
     pointsDelta: Number(item.points),
     reason: item.name,
     source: 'quick',
-    quickItemId: item.id
+    quickItemId: item.id,
+    selectedDate: options.selectedDate ?? null
   });
 }
 
-async function applyManualScore(pointsDelta, reason) {
+async function applyManualScore(pointsDelta, reason, options = {}) {
   return createScoreTransaction({
     type: pointsDelta >= 0 ? 'add' : 'subtract',
     pointsDelta,
     reason,
-    source: 'manual'
+    source: 'manual',
+    selectedDate: options.selectedDate ?? null
   });
 }
 
@@ -142,6 +164,42 @@ async function adjustScore(targetScore, reason = '设置总积分') {
     );
 
     return targetScore;
+  });
+}
+
+async function deleteTodayTransaction(id) {
+  return withTransaction(async (connection) => {
+    const [settingsRows] = await connection.query(
+      "SELECT `value` FROM settings WHERE `key` = 'current_score' FOR UPDATE"
+    );
+    const currentScore = Number(settingsRows[0]?.value || 0);
+
+    const [rows] = await connection.query(
+      `SELECT id, points_delta, source,
+              CASE
+                WHEN source IN ('quick', 'manual') AND DATE(created_at) = CURRENT_DATE
+                THEN 1
+                ELSE 0
+              END AS can_delete
+         FROM score_transactions
+        WHERE id = ?
+        FOR UPDATE`,
+      [id]
+    );
+    const transaction = rows[0];
+
+    if (!transaction || Number(transaction.can_delete) !== 1) {
+      throw new Error('只能删除今日的快捷或手动积分记录。');
+    }
+
+    const balanceAfter = currentScore - Number(transaction.points_delta);
+
+    await connection.query("UPDATE settings SET `value` = ? WHERE `key` = 'current_score'", [
+      String(balanceAfter)
+    ]);
+    await connection.query('DELETE FROM score_transactions WHERE id = ?', [transaction.id]);
+
+    return balanceAfter;
   });
 }
 
@@ -176,6 +234,7 @@ async function deleteQuickItem(id) {
 
 module.exports = {
   getCurrentScore,
+  getTodayScoreChange,
   listEnabledQuickItems,
   listAllQuickItems,
   listTransactions,
@@ -183,6 +242,7 @@ module.exports = {
   applyQuickItem,
   applyManualScore,
   adjustScore,
+  deleteTodayTransaction,
   createQuickItem,
   updateQuickItem,
   deleteQuickItem

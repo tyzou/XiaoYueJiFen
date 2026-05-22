@@ -32,7 +32,6 @@ router.post('/login', async (req, res) => {
     }
     req.session.authenticated = true;
     req.session.csrfToken = undefined;
-    req.flash('success', '已登录。');
     return res.redirect('/');
   });
 });

@@ -82,8 +82,17 @@
       <% if (transactions.length === 0) { %>
         <p class="empty">还没有积分记录。</p>
       <% } %>
-      <% transactions.forEach(function(item) { %>
-        <article class="timeline-item">
+      <% transactions.forEach(function(item) {
+        const canDelete = Number(item.can_delete) === 1;
+      %>
+        <article
+          class="timeline-item <%= canDelete ? 'deletable-transaction' : '' %>"
+          <% if (canDelete) { %>
+            data-deletable-transaction
+            data-delete-url="/transactions/<%= item.id %>/delete"
+            data-csrf-token="<%= csrfToken %>"
+          <% } %>
+        >
           <div class="timeline-main">
             <strong>
               <% if (item.quick_item_icon) { %><%- renderQuickIcon(item.quick_item_icon, '', 'timeline-icon') %><% } %>
@@ -103,6 +112,8 @@
     </div>
   </section>
 </main>
+
+<script src="/app-actions.js"></script>
 
 <script>
   (() => {

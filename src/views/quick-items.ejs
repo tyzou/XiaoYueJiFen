@@ -219,13 +219,16 @@
                       </form>
                       <span class="type-pill <%= item.points > 0 ? 'add' : 'subtract' %>"><%= item.points > 0 ? '加分' : '减分' %></span>
                     </div>
-                    <div class="item-action-buttons">
+                    <details class="item-more-menu">
+                      <summary aria-label="更多操作"><span aria-hidden="true">&hellip;</span></summary>
+                      <div class="item-more-actions">
                       <button class="edit-toggle" type="button" data-edit-item>编辑</button>
                       <form class="inline-delete-form async-quick-form" method="post" action="/quick-items/<%= item.id %>/delete" data-confirm-title="删除快捷项" data-confirm-detail="<%= item.name %> 将从快捷项列表移除，历史流水会保留。">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button class="danger-button compact" type="submit">删除</button>
                       </form>
-                    </div>
+                      </div>
+                    </details>
                   </div>
                 </div>
               </article>
