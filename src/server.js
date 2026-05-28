@@ -65,7 +65,7 @@ app.use((error, req, res, next) => {
 initializeDatabase()
   .then(() => {
     app.listen(appConfig.port, () => {
-      console.log(`XiaoYue JiFen is running on port ${appConfig.port}`);
+      console.log(`XiaoYue JiFen is running at http://localhost:${appConfig.port}`);
     });
   })
   .catch((error) => {
